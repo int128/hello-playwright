@@ -5,11 +5,11 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -s /bin/bash appuser && \
-    echo "appuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+    echo "appuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
+    mkdir -p /app && \
+    chown appuser:appuser /app
 
-RUN mkdir -p /app && \
-    chown appuser:appuser /app && \
-    npm install -g corepack && \
+RUN npm install -g corepack && \
     corepack enable
 
 WORKDIR /app
@@ -17,7 +17,7 @@ USER appuser
 COPY --chown=appuser:appuser package.json pnpm-lock.yaml .
 RUN pnpm install --frozen-lockfile --production && \
     pnpm exec playwright install --with-deps chromium && \
-    pnpm cache clean
+    pnpm cache delete
 
 COPY --chown=appuser:appuser index.ts .
 
