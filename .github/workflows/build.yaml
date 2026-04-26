@@ -54,3 +54,6 @@ jobs:
         with:
           tags: ${{ steps.metadata.outputs.tags }}
           digest: ${{ steps.build.outputs.digest }}
+      - run: docker run --rm "$DIGEST"
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
