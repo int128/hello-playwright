@@ -1,0 +1,59 @@
+name: build
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/build.yaml
+      - Dockerfile
+      - '*.ts'
+  push:
+    branches:
+      - main
+    tags:
+      - v*
+    paths:
+      - .github/workflows/build.yaml
+      - Dockerfile
+      - '*.ts'
+
+jobs:
+  container:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-uri: ${{ steps.build-metadata.outputs.image-uri }}
+    steps:
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        id: metadata
+        with:
+          images: ghcr.io/${{ github.repository }}
+      - uses: int128/docker-build-cache-config-action@b9cedacdde83a8248370324699c840b9a383d965 # v1.52.0
+        id: cache
+        with:
+          image: ghcr.io/${{ github.repository }}/cache
+      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        id: build
+        with:
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          cache-from: ${{ steps.cache.outputs.cache-from }}
+          cache-to: ${{ steps.cache.outputs.cache-to }}
+      - uses: int128/docker-build-metadata-action@e1be0d659fbf3a6d85f96d3fb11bf0ae6a092bd0 # v2.3.0
+        id: build-metadata
+        with:
+          tags: ${{ steps.metadata.outputs.tags }}
+          digest: ${{ steps.build.outputs.digest }}
+      - run: docker run --rm "$IMAGE_URI"
+        env:
+          IMAGE_URI: ${{ steps.build-metadata.outputs.image-uri }}
