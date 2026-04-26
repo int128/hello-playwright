@@ -54,6 +54,6 @@ jobs:
         with:
           tags: ${{ steps.metadata.outputs.tags }}
           digest: ${{ steps.build.outputs.digest }}
-      - run: docker run --rm "$DIGEST"
+      - run: docker run --rm "$IMAGE_URI"
         env:
-          DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE_URI: ${{ steps.build-metadata.outputs.image-uri }}
